@@ -1,18 +1,15 @@
-/* cliente.c
-   Luzia Millena Santos Silva
-   Maria Emilia Castello */
-
 #include <stdio.h>
-#include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
-int main(int argc, char *argv[]) {  
-    int sockdescr;
+int main(int argc, char *argv[]) 
+
+ {  int sockdescr;
     int numbytesrecv;
     struct sockaddr_in sa;
     struct hostent *hp;
@@ -28,7 +25,7 @@ int main(int argc, char *argv[]) {
     }
 
     host = argv[1];
-    dados = argv[3];
+    int numMaximo = atoi(argv[3]);
 
     if((hp = gethostbyname(host)) == NULL){
       puts("Nao consegui obter endereco IP do servidor.");
@@ -44,18 +41,30 @@ int main(int argc, char *argv[]) {
       puts("Nao consegui abrir o socket.");
       exit(1);
     }
-
-    if(sendto(sockdescr, dados, strlen(dados)+1, 0, (struct
-sockaddr *) &sa, sizeof sa) != strlen(dados)+1){
-      puts("Nao consegui mandar os dados"); 
-      exit(1);
+    for(int i=1;i<=numMaximo;i++){
+      char buf[10];
+      sprintf(buf, "%i", i);
+      	if(sendto(sockdescr, buf, strlen(buf), 0, (struct sockaddr *) &sa, sizeof sa) != strlen(buf)){
+      		puts("Nao consegui mandar os dados"); 
+      		exit(1);
+    	}
+	printf("enviando: %d\n", atoi(buf));
     }
-/* end while }*/
+    sprintf(buf, "%i", 0);
+    if(sendto(sockdescr, buf, strlen(buf), 0, (struct sockaddr *) &sa, sizeof sa) != strlen(buf)){
+                puts("Nao consegui mandar os dados");
+                exit(1);
+    }
+    sprintf(buf, "%i", numMaximo);
+    if(sendto(sockdescr, buf, strlen(buf), 0, (struct sockaddr *) &sa, sizeof sa) != strlen(buf)){
+                puts("Nao consegui mandar os dados");
+                exit(1);
+    }
+    /*for(int i=0;i<30;i++){
+    	recvfrom(sockdescr, buf, BUFSIZ, 0, (struct sockaddr *) &sa, &i);
 
-    recvfrom(sockdescr, buf, BUFSIZ, 0, (struct sockaddr *) &sa, &i);
-
-    printf("Sou o cliente, recebi: %s\n", buf);
-   
+    	printf("Sou o cliente, recebi: %s\n", buf);
+    }*/
     close(sockdescr);
     exit(0);
 }
