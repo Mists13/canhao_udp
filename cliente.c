@@ -1,52 +1,61 @@
+/* cliente.c
+   Luzia Millena Santos Silva
+   Maria Emilia Castello */
+
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
+#include <netdb.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
-#define SERVER_IP "127.0.0.1"
-#define SERVER_PORT 12345
-#define BUFFER_SIZE 1024
+int main(int argc, char *argv[]) {  
+    int sockdescr;
+    int numbytesrecv;
+    struct sockaddr_in sa;
+    struct hostent *hp;
+    char buf[BUFSIZ+1];
+    char *host;
+    char *dados;
 
-int main() {
-    // create socket
-    int socket_s = socket(AF_INET, SOCK_DGRAM, 0);
-    if (socket_s == -1) {
-        perror("socket");
-        exit(EXIT_FAILURE);
+    unsigned int i;
+
+    if(argc != 4) {
+      puts("Uso correto: <cliente> <nome-servidor> <porta> <dados>");
+      exit(1);
     }
 
-    // prepare server address
-    struct sockaddr_in server_addr;
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = inet_addr(SERVER_IP);
-    server_addr.sin_port = htons(SERVER_PORT);
+    host = argv[1];
+    dados = argv[3];
 
-    // send data to server
-    char buffer[BUFFER_SIZE] = "Hello, server!";
-    ssize_t send_size = sendto(socket_s, buffer, strlen(buffer), 0, (struct sockaddr*)&server_addr, sizeof(server_addr));
-    if (send_size == -1) {
-        perror("sendto");
-        exit(EXIT_FAILURE);
+    if((hp = gethostbyname(host)) == NULL){
+      puts("Nao consegui obter endereco IP do servidor.");
+      exit(1);
     }
 
-    // receive response from server
-    struct sockaddr_in sender_addr;
-    socklen_t sender_addr_len = sizeof(sender_addr);
-    ssize_t recv_size = recvfrom(socket_s, buffer, BUFFER_SIZE, 0, (struct sockaddr*)&sender_addr, &sender_addr_len);
-    if (recv_size == -1) {
-        perror("recvfrom");
-        exit(EXIT_FAILURE);
+    bcopy((char *)hp->h_addr, (char *)&sa.sin_addr, hp->h_length);
+    sa.sin_family = hp->h_addrtype;
+
+    sa.sin_port = htons(atoi(argv[2]));
+
+    if((sockdescr=socket(hp->h_addrtype, SOCK_DGRAM, 0)) < 0) {
+      puts("Nao consegui abrir o socket.");
+      exit(1);
     }
 
-    // print received data
-    printf("Received %zd bytes from %s:%d\n", recv_size, inet_ntoa(sender_addr.sin_addr), ntohs(sender_addr.sin_port));
-    printf("Response from server: %s\n", buffer);
+    if(sendto(sockdescr, dados, strlen(dados)+1, 0, (struct
+sockaddr *) &sa, sizeof sa) != strlen(dados)+1){
+      puts("Nao consegui mandar os dados"); 
+      exit(1);
+    }
+/* end while }*/
 
-    // close socket
-    close(socket_s);
-    return 0;
+    recvfrom(sockdescr, buf, BUFSIZ, 0, (struct sockaddr *) &sa, &i);
+
+    printf("Sou o cliente, recebi: %s\n", buf);
+   
+    close(sockdescr);
+    exit(0);
 }
