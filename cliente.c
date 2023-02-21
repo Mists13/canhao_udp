@@ -32,7 +32,8 @@ int main(int argc, char *argv[])
       exit(1);
     }
 
-    bcopy((char *)hp->h_addr, (char *)&sa.sin_addr, hp->h_length);
+    bcopy((char *)hp->h_addr_list[0], (char *)&sa.sin_addr, hp->h_length);
+
     sa.sin_family = hp->h_addrtype;
 
     sa.sin_port = htons(atoi(argv[2]));
