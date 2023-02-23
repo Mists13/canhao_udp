@@ -88,10 +88,9 @@ void receiveMessages(char buf[], int socket_s, struct sockaddr_in cli_addr, int 
 					sequenceNum++;
 				}
 				lastMsgReceived = atoi(buf);
-				// verificar sequencia de mensagens perdidas
 			}
 		}else{
-			puts("[Servidor] Erro ao receber mensagens. Finalizando..");
+			puts("[Servidor] Erro ao receber mensagens. Finalizando..\n");
 			memset(buf,'\0', BUFSIZ);
 		}
 	}
@@ -158,14 +157,17 @@ int main ( int argc, char *argv[] ){
 	int firstMessage = 1;
 	while(1){
 		cli_addr_len = sizeof(cli_addr);
-		if (strlen(buf) == 0){  // Recebe primeira mensagem
-			while (firstMessage == 1 && 
-				   recvfrom(socket_s, buf, BUFSIZ, 0, (struct sockaddr *) &cli_addr, &cli_addr_len) > 0){
-				totalMsgs = atoi(buf);
-				printf("[Servidor] Salvando total de mensagens: %d\n", totalMsgs);
-				memset(buf,'\0', BUFSIZ);
-				firstMessage = 0;
-				break;
+		// Recebe primeira mensagem
+		if (strlen(buf) == 0){  
+			while (firstMessage == 1){
+				if (recvfrom(socket_s, buf, BUFSIZ, 0, (struct sockaddr *) &cli_addr, &cli_addr_len) > 0){
+					totalMsgs = atoi(buf);
+					printf("[Servidor] Iniciando o recebimento de mensagens\n");
+					printf("[Servidor] Salvando total de mensagens: %d\n", totalMsgs);
+					memset(buf,'\0', BUFSIZ);
+					firstMessage = 0;
+					break;
+				}
 			}	
 		}
 		memset(buf,'\0', BUFSIZ);
@@ -175,9 +177,10 @@ int main ( int argc, char *argv[] ){
 			if(atoi(buf) == 1){
 				receiveMessages(buf, socket_s, cli_addr, cli_addr_len, messagesOutOfOrder, messagesMissing, totalMsgs);
 			}
-		}else {
-			printf("[Servidor] Escutando...");
+			totalMsgs = 0;
 			firstMessage = 1;
+		}else {
+			printf("[Servidor] Escutando...\n");
 		} 
 		memset(buf,'\0', BUFSIZ);
 	}
