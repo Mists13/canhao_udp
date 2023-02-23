@@ -11,61 +11,51 @@
 #define TAMFILA      5
 #define MAXHOSTNAME 30
 
-
-void calculateMetrics(int numOutOfOrder, int numNotReceived, int lastMsgReceived, int totalMsgs){
-
+void handleErrors(int messages[], int totalMsgs, int receivedMsgs){
 	puts("\n");
-	printf("[Servidor] Calculando erros...\n");
-	printf("[Servidor] Total mensagens esperadas: %d\n", totalMsgs);
-
-	int totalNotReceived = totalMsgs - lastMsgReceived;
-	if (numNotReceived != 0 || totalNotReceived != 0){
-		printf("[Servidor] Total de mensagens não recebidas: %d\n", numNotReceived);
-		printf("[Servidor] Total de mensagens não recebidas após falha no servidor: %d\n", totalNotReceived);
-		printf("[Servidor] Porcentagem de mensagens não recebidas: %.2f%%\n", 
-				100*((double)(totalNotReceived+numNotReceived)/(double)totalMsgs));
+        printf("[Servidor] Calculando erros...\n");
+        printf("[Servidor] Total mensagens esperadas: %d\n", totalMsgs);
+	printf("[Servidor] Total mensagens recebidas: %d\n", receivedMsgs+2);
+	int checkErrors[totalMsgs];
+	memset(checkErrors, 0, totalMsgs*sizeof(checkErrors[0]));
+	for(int i=0;i<=receivedMsgs;i++){
+		for(int j=2;j<=totalMsgs;j++){
+			if(messages[i]==j)
+				checkErrors[i]=1;
+		}
 	}
-	if(numOutOfOrder != 0){
+	int index=0, index2=0;
+	for(int i=0;i<=totalMsgs-2;i++){
+		if(checkErrors[i]==0){
+                        index++;
+                }
+        }
+	int maior=0;
+	for(int i=0;i<=totalMsgs-2;i++){
+		if(checkErrors[i]!=0){
+			if(messages[i]<maior)
+				index2++;
+			if(messages[i]>maior){
+				maior=messages[i];
+			}	
+		}
+	}
+	if(index2!=0){
+		puts("\n");
 		printf("[Servidor] Metricas de mensagens fora de ordem: \n");
-		printf("[Servidor] Total de mensagens fora de ordem: %d\n", numOutOfOrder);
-		printf("[Servidor] Ultima mensagem recebida: %d\n", lastMsgReceived);
-		printf("[Servidor] Porcentagem de mensagens fora de ordem: %.2f%%\n",
-		 		100*((double)numOutOfOrder/(double)totalMsgs));
-		
-	} 
-	if ( totalNotReceived == 0 && numOutOfOrder == 0 && numNotReceived == 0){
-		printf("[Servidor] Todas as mensagens foram recebidas corretamente \n");
+		printf("[Servidor] Total de mensagens recebidas fora de ordem: %d\n", index2+1);
+		printf("[Servidor] Porcentagem de mensagens fora de ordem: %.2f%%\n", 100*((double)(index2+1)/(double)totalMsgs));
+	}
+	if(index!=0){
+		puts("\n");
+		printf("[Servidor] Metricas de mensagens nao recebidas: \n");
+		printf("[Servidor] Total de mensagens nao recebidas: %d\n", index);
+		printf("[Servidor] Porcentagem de mensagens não recebidas: %.2f%%\n", 100*((double)(index)/(double)totalMsgs));
 		puts("\n");
 	}
-}
-
-
-void handleMessageOutOfOrder(int *numMessagesOutOfOrder, int *numMessagesNotReceivedYet,
-							 int *sequenceNum, int msgReceived, int lastMsgReceived){
-	
-	if (msgReceived < *sequenceNum){											// Msg chegou atrasadinha												
-		printf("[Servidor] Recebi a mensagem %d atrasadinha\n", msgReceived);
-		*numMessagesNotReceivedYet--; 											// remove das mensagens nao recebidas ainda
-		*numMessagesOutOfOrder++; 	 											// adiciona nas mensagens fora de ordem
-																				// num sequencia se mantem o mesmo
-
-	} else if (msgReceived - *sequenceNum > 1 )	{								// Seq se msgs perdidas
-		printf("[Servidor] Recebi a mensagem----> %d\n", msgReceived);	
-		printf("[Servidor] Esperava %d mensagens a partir da mensagem %d\n",
-				msgReceived - *sequenceNum, *sequenceNum);
-		*numMessagesNotReceivedYet+= (msgReceived - *sequenceNum);				// Anota seq de mensagens perdidas
-		*sequenceNum = msgReceived + 1; 										// Num de sequencia se torna 
-																				// o seguinte ao ja recebido
-	}
-	else {
-		printf("[Servidor] Esperava a mensagem %d\n", 			*sequenceNum);
-		printf("[Servidor] Recebi a mensagem %d\n",   			msgReceived);
-		*numMessagesNotReceivedYet++;											// Msg ainda pode ser recebida			
-		*sequenceNum=+2;														// num de sequencia aumenta em 2
-	}
-
-}
-
+	if(index2==0 && index==0)
+		printf("[Servidor] Todas as mensagens chegaram");
+}	
 void receiveMessages(char buf[], int socket_s, struct sockaddr_in cli_addr, int cli_addr_len,
 					 int messagesOutOfOrder[], int messagesNotReceivedYet[], int totalMsgs){
 	int indexNotReceived = 0;
@@ -74,20 +64,15 @@ void receiveMessages(char buf[], int socket_s, struct sockaddr_in cli_addr, int 
 	int numNotReceived = 0;
 	int numOutOfOrder = 0;
 	int sequenceNum = 2;
-
+	int messages[totalMsgs+2], i=0;
 	// Recebe sequencia ate encontrar 0
 	while(atoi(buf)!=0){
 		memset(buf,0, BUFSIZ);
 		if (recvfrom(socket_s, buf, BUFSIZ, 0, (struct sockaddr *) &cli_addr, &cli_addr_len) > 0){
 			if(atoi(buf)!=0){
-				if(atoi(buf)!=sequenceNum){				// Mensagem fora de ordem			
-					handleMessageOutOfOrder( &numOutOfOrder, &numNotReceived,
-							  				 &sequenceNum, atoi(buf), lastMsgReceived);
-				} else {
-					printf("[Servidor] Recebi a mensagem----> %d OK\n", atoi(buf));
-					sequenceNum++;
-				}
-				lastMsgReceived = atoi(buf);
+				printf("[Servidor] Recebi a mensagem----> %d OK\n", atoi(buf));
+				messages[i]=atoi(buf);
+				i++;
 			}
 		}else{
 			puts("[Servidor] Erro ao receber mensagens. Finalizando..\n");
@@ -96,7 +81,7 @@ void receiveMessages(char buf[], int socket_s, struct sockaddr_in cli_addr, int 
 	}
 	
 	printf("[Servidor] Fim de recebimento...\n");
-	calculateMetrics(numOutOfOrder, numNotReceived, lastMsgReceived, totalMsgs);
+	handleErrors(messages, totalMsgs, i-1);
 	memset(buf,'\0', BUFSIZ);
 }
 
@@ -158,8 +143,8 @@ int main ( int argc, char *argv[] ){
 	while(1){
 		cli_addr_len = sizeof(cli_addr);
 		// Recebe primeira mensagem
-		if (strlen(buf) == 0){  
-			while (firstMessage == 1){
+		if(strlen(buf) == 0){  
+			while(firstMessage == 1){
 				if (recvfrom(socket_s, buf, BUFSIZ, 0, (struct sockaddr *) &cli_addr, &cli_addr_len) > 0){
 					totalMsgs = atoi(buf);
 					printf("[Servidor] Iniciando o recebimento de mensagens\n");
@@ -185,3 +170,4 @@ int main ( int argc, char *argv[] ){
 		memset(buf,'\0', BUFSIZ);
 	}
 }
+
