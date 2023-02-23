@@ -35,6 +35,7 @@ void calculateMetrics(int numOutOfOrder, int numNotReceived, int lastMsgReceived
 	} 
 	if ( totalNotReceived == 0 && numOutOfOrder == 0 && numNotReceived == 0){
 		printf("[Servidor] Todas as mensagens foram recebidas corretamente \n");
+		puts("\n");
 	}
 }
 
@@ -42,7 +43,7 @@ void calculateMetrics(int numOutOfOrder, int numNotReceived, int lastMsgReceived
 void handleMessageOutOfOrder(int *numMessagesOutOfOrder, int *numMessagesNotReceivedYet,
 							 int *sequenceNum, int msgReceived, int lastMsgReceived){
 	
-	if (msgReceived < *sequenceNum){												// Msg chegou atrasadinha												
+	if (msgReceived < *sequenceNum){											// Msg chegou atrasadinha												
 		printf("[Servidor] Recebi a mensagem %d atrasadinha\n", msgReceived);
 		*numMessagesNotReceivedYet--; 											// remove das mensagens nao recebidas ainda
 		*numMessagesOutOfOrder++; 	 											// adiciona nas mensagens fora de ordem
@@ -53,13 +54,14 @@ void handleMessageOutOfOrder(int *numMessagesOutOfOrder, int *numMessagesNotRece
 		printf("[Servidor] Esperava %d mensagens a partir da mensagem %d\n",
 				msgReceived - *sequenceNum, *sequenceNum);
 		*numMessagesNotReceivedYet+= (msgReceived - *sequenceNum);				// Anota seq de mensagens perdidas
-		*sequenceNum = msgReceived + 1; 							// Num seq se torna o seguinte ao ja recebido
+		*sequenceNum = msgReceived + 1; 										// Num de sequencia se torna 
+																				// o seguinte ao ja recebido
 	}
 	else {
 		printf("[Servidor] Esperava a mensagem %d\n", 			*sequenceNum);
 		printf("[Servidor] Recebi a mensagem %d\n",   			msgReceived);
 		*numMessagesNotReceivedYet++;											// Msg ainda pode ser recebida			
-		*sequenceNum=+2;															// num de sequencia aumenta em 2
+		*sequenceNum=+2;														// num de sequencia aumenta em 2
 	}
 
 }
@@ -137,7 +139,7 @@ int main ( int argc, char *argv[] ){
 	// tempo limite de 10 segundos para evitar 
 	// que o servidor fique esperando por muito tempo
 	// no bloqueio para recebimento
-	int timeout = 20; 
+	int timeout = 10; 
 	struct timeval tv;
 	tv.tv_sec = timeout;
 	tv.tv_usec = 0;
@@ -172,10 +174,10 @@ int main ( int argc, char *argv[] ){
 			printf("[Servidor] Recebi a mensagem----> %d\n", atoi(buf));
 			if(atoi(buf) == 1){
 				receiveMessages(buf, socket_s, cli_addr, cli_addr_len, messagesOutOfOrder, messagesMissing, totalMsgs);
-				// calculateMetrics(buf, socket_s, cli_addr, cli_addr_len, messagesOutOfOrder, indexErrors, lastMsgReceived);
 			}
 		}else {
 			printf("[Servidor] Escutando...");
+			firstMessage = 1;
 		} 
 		memset(buf,'\0', BUFSIZ);
 	}
