@@ -43,8 +43,8 @@ void handleErrors(int messages[], int totalMsgs, int receivedMsgs){
 	if(index2!=0){
 		puts("\n");
 		printf("[Servidor] Metricas de mensagens fora de ordem: \n");
-		printf("[Servidor] Total de mensagens recebidas fora de ordem: %d\n", index2+1);
-		printf("[Servidor] Porcentagem de mensagens fora de ordem: %.2f%%\n", 100*((double)(index2+1)/(double)totalMsgs));
+		printf("[Servidor] Total de mensagens recebidas fora de ordem: %d\n", index2);
+		printf("[Servidor] Porcentagem de mensagens fora de ordem: %.2f%%\n", 100*((double)(index2)/(double)totalMsgs));
 	}
 	if(index!=0){
 		puts("\n");
